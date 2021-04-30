@@ -58,8 +58,28 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SOIL_M_1_Pin GPIO_PIN_0
+#define SOIL_M_1_GPIO_Port GPIOA
+#define SOIL_M_2_Pin GPIO_PIN_1
+#define SOIL_M_2_GPIO_Port GPIOA
+#define SOIL_M_3_Pin GPIO_PIN_2
+#define SOIL_M_3_GPIO_Port GPIOA
+#define SOIL_M_4_Pin GPIO_PIN_3
+#define SOIL_M_4_GPIO_Port GPIOA
 #define LD1_Pin GPIO_PIN_4
 #define LD1_GPIO_Port GPIOA
+#define GREEN_LED_Pin GPIO_PIN_5
+#define GREEN_LED_GPIO_Port GPIOA
+#define SOIL_T_3_Pin GPIO_PIN_6
+#define SOIL_T_3_GPIO_Port GPIOA
+#define SOIL_T_4_Pin GPIO_PIN_7
+#define SOIL_T_4_GPIO_Port GPIOA
+#define SOIL_T_1_Pin GPIO_PIN_8
+#define SOIL_T_1_GPIO_Port GPIOA
+#define RED_LED_Pin GPIO_PIN_9
+#define RED_LED_GPIO_Port GPIOA
+#define SOIL_T_5_Pin GPIO_PIN_2
+#define SOIL_T_5_GPIO_Port GPIOB
 #define LD2_Pin GPIO_PIN_0
 #define LD2_GPIO_Port GPIOB
 #define LD3_Pin GPIO_PIN_1
@@ -72,6 +92,8 @@ void Error_Handler(void);
 #define JTCK_GPIO_Port GPIOA
 #define JTDO_Pin GPIO_PIN_3
 #define JTDO_GPIO_Port GPIOB
+#define SOIL_T_2_Pin GPIO_PIN_6
+#define SOIL_T_2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
