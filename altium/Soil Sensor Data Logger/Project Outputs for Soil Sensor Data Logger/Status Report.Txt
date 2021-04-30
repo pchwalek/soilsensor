@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [Soil Sensor Data Logger.PrjPcb]
+   Generated File[layout.TXT]
+   Generated File[layout.LDP]
+   Generated File[layout.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 8:30:37 PM On 4/23/2021

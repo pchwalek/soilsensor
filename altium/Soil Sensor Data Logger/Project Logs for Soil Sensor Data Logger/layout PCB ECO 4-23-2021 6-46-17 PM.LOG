@@ -1,0 +1,13 @@
+Added Pin To Net: NetName=I2C1_SCL Pin=P4-4
+Added Pin To Net: NetName=I2C1_SDA Pin=P4-6
+Added Pin To Net: NetName=I2C1_SDA Pin=P5-3
+Added Pin To Net: NetName=I2C1_SCL Pin=P5-4
+Change Net Name : Old Net Name=I2C1_SCL New Net Name=NetJ23_1
+Change Net Name : Old Net Name=I2C1_SDA New Net Name=NetJ21_2
+Added Pin To Net: NetName=I2C1_SCL Pin=P6-3
+Added Net: Name=I2C1_SCL
+Added Pin To Net: NetName=I2C1_SDA Pin=P6-4
+Added Net: Name=I2C1_SDA
+Added Room: Name=sch_expansion
+Added Room: Name=sch_pwr
+Added Room: Name=SoilSensorExpansion

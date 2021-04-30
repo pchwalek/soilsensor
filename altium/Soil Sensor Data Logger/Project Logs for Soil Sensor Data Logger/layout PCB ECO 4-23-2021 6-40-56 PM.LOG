@@ -1,0 +1,7 @@
+Added Component: Designator=SB1(JUMPER_SMD)
+Added Pin To Net: NetName=NetJ5_1 Pin=SB1-1
+Added Pin To Net: NetName=5V Pin=SB1-2
+Added Member To Class: ClassName=SoilSensorExpansion Member=Component SB1 SOLDER_JUMPER
+Added Room: Name=sch_expansion
+Added Room: Name=sch_pwr
+Added Room: Name=SoilSensorExpansion
