@@ -101,13 +101,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_GPIO_WritePin(GREEN_LED_Pin, GREEN_LED_GPIO_Port, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_SET);
 	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(RED_LED_Pin, RED_LED_GPIO_Port, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_SET);
 	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(GREEN_LED_Pin, GREEN_LED_GPIO_Port, GPIO_PIN_RESET);
+	  HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_RESET);
 	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(RED_LED_Pin, RED_LED_GPIO_Port, GPIO_PIN_RESET);
+	  HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_RESET);
 	  HAL_Delay(1000);
 	  HAL_GPIO_TogglePin(RED_LED_Pin, RED_LED_GPIO_Port);
 
@@ -202,6 +202,65 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+//boolean DS18B20_Init()
+//{
+//  pinMode(DSPIN, OUTPUT);
+//  digitalWrite(DSPIN, HIGH);
+//  delayMicroseconds(5);
+//  digitalWrite(DSPIN, LOW);
+//  delayMicroseconds(750);//480-960
+//  digitalWrite(DSPIN, HIGH);
+//  pinMode(DSPIN, INPUT);
+//  int t = 0;
+//  while (digitalRead(DSPIN))
+//  {
+//    t++;
+//    if (t > 60) return false;
+//    delayMicroseconds(1);
+//  }
+//  t = 480 - t;
+//  pinMode(DSPIN, OUTPUT);
+//  delayMicroseconds(t);
+//  digitalWrite(DSPIN, HIGH);
+//  return true;
+//}
+//
+//void DS18B20_Write(byte data)
+//{
+//  pinMode(DSPIN, OUTPUT);
+//  for (int i = 0; i < 8; i++)
+//  {
+//    digitalWrite(DSPIN, LOW);
+//    delayMicroseconds(10);
+//    if (data & 1) digitalWrite(DSPIN, HIGH);
+//    else digitalWrite(DSPIN, LOW);
+//    data >>= 1;
+//    delayMicroseconds(50);
+//    digitalWrite(DSPIN, HIGH);
+//  }
+//}
+//
+//byte DS18B20_Read()
+//{
+//  pinMode(DSPIN, OUTPUT);
+//  digitalWrite(DSPIN, HIGH);
+//  delayMicroseconds(2);
+//  byte data = 0;
+//  for (int i = 0; i < 8; i++)
+//  {
+//    digitalWrite(DSPIN, LOW);
+//    delayMicroseconds(1);
+//    digitalWrite(DSPIN, HIGH);
+//    pinMode(DSPIN, INPUT);
+//    delayMicroseconds(5);
+//    data >>= 1;
+//    if (digitalRead(DSPIN)) data |= 0x80;
+//    delayMicroseconds(55);
+//    pinMode(DSPIN, OUTPUT);
+//    digitalWrite(DSPIN, HIGH);
+//  }
+//  return data;
+//}
 
 /* USER CODE END 4 */
 
