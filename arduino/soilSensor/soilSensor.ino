@@ -4,8 +4,10 @@
 #include "Adafruit_Si7021.h"
 #include "SparkFun_SCD30_Arduino_Library.h"
 #include "Zanshin_BME680.h" // Include the BME680 Sensor library
-#include <ArduinoJson.h>
 #include <arduino-timer.h>
+
+#define ARDUINOJSON_USE_LONG_LONG 1
+#include <ArduinoJson.h>
 
 
 //#define TEMP_1        PA8
@@ -15,7 +17,7 @@
 //#define TEMP_5        PB2
 
 #define TEMP          6 //pin PB2
-#define TEMPERATURE_PRECISION 9
+#define TEMPERATURE_PRECISION 12
 
 #define SOIL_MOIST_1  PA0
 #define SOIL_MOIST_2  PA1
@@ -31,6 +33,9 @@
 #define COMMAND_LED_ON        0x01
 #define COMMAND_GET_VALUE     0x05
 #define COMMAND_NOTHING_NEW   0x99
+
+/* Index Tracker */
+uint64_t idx_tracker = 0;
 
 /* SPARKFUN SI7021 SPECIFIC */
 //Create Instance of HTU21D or SI7021 temp and humidity sensor and MPL3115A2 barrometric sensor
@@ -89,12 +94,24 @@ StaticJsonDocument<400> doc;
 
 
 auto timer = timer_create_default(); // create a timer with default settings
+uint8_t led_state = 0;
+
 
 bool sampleSensors(void *) {
 
   doc["start_time"] = millis();
-
-  digitalWrite(GREEN_LED, !digitalRead(GREEN_LED));
+  doc["idx"] = idx_tracker;
+  idx_tracker += 1;
+  
+//  digitalWrite(GREEN_LED, !digitalRead(GREEN_LED));
+//  led_state = !led_state;
+//  if(led_state){
+//    greenLED_on(); //on
+//  }else{
+//    greenLED_off(); //off
+//  }
+  greenLED_on();
+  
 //  delayMicroseconds(1000000);
 //  digitalWrite(GREEN_LED, LOW);
 //  digitalWrite(RED_LED, HIGH);
@@ -119,21 +136,21 @@ bool sampleSensors(void *) {
   
 
   /* SI7021 */
-  doc["si_temp"] = si7021.readHumidity();
-  doc["si_hum"] = si7021.readTemperature();
+  doc["si7021"]["temp"] = si7021.readHumidity();
+  doc["si7021"]["hum"] = si7021.readTemperature();
 
   // Toggle heater enabled state every 30 seconds
   // An ~1.8 degC temperature increase can be noted when heater is enabled
   if (++loopCnt == 30) {
     enableHeater = !enableHeater;
-    doc["si_heater"] = enableHeater;
+    doc["si7021"]["heater"] = enableHeater;
 
     si7021.heater(enableHeater);
-    Serial.print("Heater Enabled State: ");
-    if (si7021.isHeaterEnabled())
-      Serial.println("ENABLED");
-    else
-      Serial.println("DISABLED");
+//    Serial.print("Heater Enabled State: ");
+//    if (si7021.isHeaterEnabled())
+//      Serial.println("ENABLED");
+//    else
+//      Serial.println("DISABLED");
        
     loopCnt = 0;
   }
@@ -147,8 +164,12 @@ bool sampleSensors(void *) {
   doc["soil_m_2"] = soilMoisture_2;
   doc["soil_m_3"] = soilMoisture_3;
 
-  serializeJsonPretty(doc, Serial);
-
+//  serializeJsonPretty(doc, Serial);
+  serializeJson(doc, Serial);
+  Serial.println();
+  
+  greenLED_off();
+  
   return true; // repeat? true
 }
 
@@ -278,10 +299,10 @@ void BME_sampleConversion(){
 //  Serial.print( ( (float) BME_gas)/100);
 //  Serial.println();
 
-  doc["BME_temp"] = ( (float) BME_temp)/100;
-  doc["BME_hum"] = ( (float) BME_humidity)/1000;
-  doc["BME_pres"] = ( (float) BME_pressure)/100;
-  doc["BME_gas"] = ( (float) BME_gas)/100;
+  doc["BME680"]["temp"] = ( (float) BME_temp)/100;
+  doc["BME680"]["hum"] = ( (float) BME_humidity)/1000;
+  doc["BME680"]["pres"] = ( (float) BME_pressure)/100;
+  doc["BME680"]["gas"] = ( (float) BME_gas)/100;
 }
 
 void sampleAirQuality(){
@@ -303,9 +324,9 @@ void sampleAirQuality(){
 //  
 //      Serial.println();
       
-      doc["AQ_CO2"] = airSensor.getCO2();
-      doc["AQ_temp"] = airSensor.getTemperature();
-      doc["AQ_hum"] = airSensor.getHumidity();
+      doc["SCD30"]["CO2"] = airSensor.getCO2();
+      doc["SCD30"]["temp"] = airSensor.getTemperature();
+      doc["SCD30"]["hum"] = airSensor.getHumidity();
     }
   }
   sensorState = 0;
@@ -313,14 +334,41 @@ void sampleAirQuality(){
 }
 
 
+void greenLED_on(){
+  analogWrite(GREEN_LED, 240);
+}
+
+void greenLED_off(){
+  analogWrite(GREEN_LED, 255);
+}
+
+void redLED_on(){
+  analogWrite(RED_LED, 240);
+}
+
+void redLED_off(){
+  analogWrite(RED_LED, 255);
+}
+
 // function to print the temperature for a device
 float getTemperature(DeviceAddress deviceAddress)
 {
   float tempC = sensors.getTempC(deviceAddress);
   if(tempC == DEVICE_DISCONNECTED_C) 
   {
-    Serial.println("Error: Could not read temperature data");
-    return -1000;
+    int retry_attempts = 5;
+    while(retry_attempts >= 0){
+      float tempC = sensors.getTempC(deviceAddress);
+      if(tempC == DEVICE_DISCONNECTED_C){
+        retry_attempts -= 1;
+      }else{
+        retry_attempts = -1;
+      }
+    }
+    if(retry_attempts == 0){
+      Serial.println("Error: Could not read temperature data");
+      return -1000;
+    }
   }
 
 //  Serial.print("Temp C: ");
