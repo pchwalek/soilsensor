@@ -23,7 +23,7 @@ def soil_sensor_logger():
 
     print("Soil Sensor Logger Started")
     client = pymongo.MongoClient(
-        "mongodb+srv://pchwalek:RtJOViZd16yHKTS2@envsensor.vn8ke.mongodb.net/envsensor?retryWrites=true&w=majority", ssl_cert_reqs=ssl.CERT_NONE)
+        "mongodb+srv://pchwalek:rQzhQWWrpQ2qTiJ0@envsensor.vn8ke.mongodb.net/envsensor?retryWrites=true&w=majority", ssl_cert_reqs=ssl.CERT_NONE)
     mydb = client["envSensor"]
     mySoilSensor = mydb["soilSensor"]
     #
@@ -42,8 +42,8 @@ def soil_sensor_logger():
             data = json.loads(line)
             data["epoch"] = time.time()
 
-            # print(data["idx"])
-            print(data["temp_1"])
+            print(data["idx"])
+            # print(data["temp_1"])
 
             # write to file
             with open(DATA_DIRECTORY + 'soil_sensor_log.txt', 'a') as outfile:

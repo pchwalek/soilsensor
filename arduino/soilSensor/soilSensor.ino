@@ -234,7 +234,7 @@ void setup() {
     while (true)
     ;
   }
-  doc["si_heater"] = enableHeater;
+  doc["si7021"]["heater"] = enableHeater;
 
 
   /* *********************************************************************** */
