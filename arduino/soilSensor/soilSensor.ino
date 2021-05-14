@@ -139,20 +139,34 @@ bool sampleSensors(void *) {
   doc["si7021"]["temp"] = si7021.readHumidity();
   doc["si7021"]["hum"] = si7021.readTemperature();
 
-  // Toggle heater enabled state every 30 seconds
+  // Toggle heater enabled state every 10 minutes if humidity reading over 80
   // An ~1.8 degC temperature increase can be noted when heater is enabled
-  if (++loopCnt == 30) {
-    enableHeater = !enableHeater;
-    doc["si7021"]["heater"] = enableHeater;
+  if(doc["si7021"]["hum"] > 80){
+    loopCnt += 1;
 
-    si7021.heater(enableHeater);
-//    Serial.print("Heater Enabled State: ");
-//    if (si7021.isHeaterEnabled())
-//      Serial.println("ENABLED");
-//    else
-//      Serial.println("DISABLED");
-       
-    loopCnt = 0;
+    if((!enableHeater) && loopCnt > 600){ //turn on heater if higher humidity measurements read for 10 minutes
+      enableHeater = true;
+      doc["si7021"]["heater"] = enableHeater;
+  
+      si7021.heater(enableHeater);
+      loopCnt = 0;
+    }else-if(enableHeater && (loopCnt > 30)){ // turn off after 30 seconds
+      enableHeater = false;
+      doc["si7021"]["heater"] = enableHeater;
+  
+      si7021.heater(enableHeater);
+      loopCnt = 0;
+    }
+    
+  }else-if(loopCnt != 0){ // if heater is on and humidity dropped below 80, keep on for full 30 second interval
+    loopCnt += 1;
+    if(enableHeater && (loopCnt > 30)){ // turn off after 30 seconds
+      enableHeater = false;
+      doc["si7021"]["heater"] = enableHeater;
+  
+      si7021.heater(enableHeater);
+      loopCnt = 0;
+    }
   }
 
   /* Sample Soil Moisture Sensors */
