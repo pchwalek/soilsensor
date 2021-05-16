@@ -5,7 +5,7 @@
 #include "SparkFun_SCD30_Arduino_Library.h"
 #include "Zanshin_BME680.h" // Include the BME680 Sensor library
 #include <arduino-timer.h>
-
+#include "bsec.h"
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>
 
@@ -71,6 +71,23 @@ float altitude(const int32_t press, const float seaLevel)
   return(Altitude);
 } // of method altitude()
 
+const uint8_t bsec_config_iaq[] = {
+#include "config/generic_33v_3s_4d/bsec_iaq.txt"
+};
+
+#define STATE_SAVE_PERIOD  UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
+
+// Helper functions declarations
+void checkIaqSensorStatus(void);
+void errLeds(void);
+void loadState(void);
+void updateStateBME680(void);
+
+// Create an object of the class Bsec
+Bsec iaqSensor;
+uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
+uint16_t stateUpdateCounter = 0;
+
 /* Moisture Sensor Specific */
 uint16_t soilMoisture_1, soilMoisture_2, soilMoisture_3;
 
@@ -90,12 +107,22 @@ DeviceAddress TEMP_4   = { 0x28, 0x1F, 0xA6, 0x77, 0x91, 0x08, 0x02, 0xA9 };
 /* *********************************************************************** */
 /*                DATA PACKET SETUP               */
 /* *********************************************************************** */
-StaticJsonDocument<400> doc;
-
+StaticJsonDocument<600> doc;
 
 auto timer = timer_create_default(); // create a timer with default settings
 uint8_t led_state = 0;
 
+bool sampleBME(void *){ //needs to be called after <3seconds
+    /* SAMPLE BME680 SENSOR */
+  if (iaqSensor.run()) {
+    BME_sampleConversion();
+    updateStateBME680();
+  }else{
+    checkIaqSensorStatus();
+  }
+
+  return true;
+}
 
 bool sampleSensors(void *) {
 
@@ -130,14 +157,20 @@ bool sampleSensors(void *) {
   /* SAMPLE CO2 SENSOR */
   sampleAirQuality();
 
-  /* SAMPLE BME680 SENSOR */
-  BME680.getSensorData(BME_temp,BME_humidity,BME_pressure,BME_gas);  // Get the most recent readings
-  BME_sampleConversion();
+//  /* SAMPLE BME680 SENSOR */
+//  if (iaqSensor.run()) {
+//    BME_sampleConversion();
+//    updateStateBME680();
+//  }else{
+//    checkIaqSensorStatus();
+//  }
+//  BME680.getSensorData(BME_temp,BME_humidity,BME_pressure,BME_gas);  // Get the most recent readings
+//  BME_sampleConversion();
   
 
   /* SI7021 */
-  doc["si7021"]["temp"] = si7021.readHumidity();
-  doc["si7021"]["hum"] = si7021.readTemperature();
+  doc["si7021"]["temp"] = si7021.readTemperature();
+  doc["si7021"]["hum"] = si7021.readHumidity();
 
   // Toggle heater enabled state every 10 minutes if humidity reading over 80
   // An ~1.8 degC temperature increase can be noted when heater is enabled
@@ -150,7 +183,7 @@ bool sampleSensors(void *) {
   
       si7021.heater(enableHeater);
       loopCnt = 0;
-    }else-if(enableHeater && (loopCnt > 30)){ // turn off after 30 seconds
+    }else if(enableHeater && (loopCnt > 30)){ // turn off after 30 seconds
       enableHeater = false;
       doc["si7021"]["heater"] = enableHeater;
   
@@ -158,7 +191,7 @@ bool sampleSensors(void *) {
       loopCnt = 0;
     }
     
-  }else-if(loopCnt != 0){ // if heater is on and humidity dropped below 80, keep on for full 30 second interval
+  }else if(loopCnt != 0){ // if heater is on and humidity dropped below 80, keep on for full 30 second interval
     loopCnt += 1;
     if(enableHeater && (loopCnt > 30)){ // turn off after 30 seconds
       enableHeater = false;
@@ -196,6 +229,7 @@ void setup() {
   pinMode(RED_LED, OUTPUT_OPEN_DRAIN); //http://docs.leaflabs.com/static.leaflabs.com/pub/leaflabs/maple-docs/0.0.12/lang/api/pinmode.html
 
   Serial.begin(115200);
+//  while(!Serial);
 
   delay(5);
 
@@ -264,23 +298,48 @@ void setup() {
   /* *********************************************************************** */
   /*                BME680 SENSOR               */
   /* *********************************************************************** */
-  while (!BME680.begin(I2C_STANDARD_MODE)) // Start BME680 using I2C protocol
-  {
-    Serial.print(F("-  Unable to find BME680. Trying again in 5 seconds.\n"));
-    delay(5000);
-  } // of loop until device is located
-  //  Serial.print(F("- Setting 16x oversampling for all sensors\n"));
-  BME680.setOversampling(TemperatureSensor,Oversample16); // Use enumerated type values
-  BME680.setOversampling(HumiditySensor,   Oversample16); // Use enumerated type values
-  BME680.setOversampling(PressureSensor,   Oversample16); // Use enumerated type values
-  //  Serial.print(F("- Setting IIR filter to a value of 4 samples\n"));
-  BME680.setIIRFilter(IIR4); // Use enumerated type values
-  //  Serial.print(F("- Setting gas measurement to 320\xC2\xB0\x43 for 150ms\n")); // "�C" symbols
-  BME680.setGas(320,150); // 320�c for 150 milliseconds
+//  while (!BME680.begin(I2C_STANDARD_MODE)) // Start BME680 using I2C protocol
+//  {
+//    Serial.print(F("-  Unable to find BME680. Trying again in 5 seconds.\n"));
+//    delay(5000);
+//  } // of loop until device is located
+//  //  Serial.print(F("- Setting 16x oversampling for all sensors\n"));
+//  BME680.setOversampling(TemperatureSensor,Oversample16); // Use enumerated type values
+//  BME680.setOversampling(HumiditySensor,   Oversample16); // Use enumerated type values
+//  BME680.setOversampling(PressureSensor,   Oversample16); // Use enumerated type values
+//  //  Serial.print(F("- Setting IIR filter to a value of 4 samples\n"));
+//  BME680.setIIRFilter(IIR4); // Use enumerated type values
+//  //  Serial.print(F("- Setting gas measurement to 320\xC2\xB0\x43 for 150ms\n")); // "�C" symbols
+//  BME680.setGas(320,150); // 320�c for 150 milliseconds
 
+  iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
+  checkIaqSensorStatus();
+  iaqSensor.setConfig(bsec_config_iaq);
+  checkIaqSensorStatus();
+  
+  bsec_virtual_sensor_t sensorList[10] = {
+    BSEC_OUTPUT_RAW_TEMPERATURE,
+    BSEC_OUTPUT_RAW_PRESSURE,
+    BSEC_OUTPUT_RAW_HUMIDITY,
+    BSEC_OUTPUT_RAW_GAS,
+    BSEC_OUTPUT_IAQ,
+    BSEC_OUTPUT_STATIC_IAQ,
+    BSEC_OUTPUT_CO2_EQUIVALENT,
+    BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+  };
+
+  iaqSensor.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
+  checkIaqSensorStatus();
+
+  /* SAMPLER SPECITIC */
   
   // call the sampler function every 5000 millis (5 second)
   timer.every(5000, sampleSensors);
+    
+  // call the BME sampler
+  timer.every(2000, sampleBME); //needs to be called after <3seconds
 
 }
 
@@ -293,6 +352,76 @@ void loop() {
 
 }
 
+void updateStateBME680(void)
+{
+  bool update = false;
+  /* Set a trigger to save the state. Here, the state is saved every STATE_SAVE_PERIOD with the first state being saved once the algorithm achieves full calibration, i.e. iaqAccuracy = 3 */
+  if (stateUpdateCounter == 0) {
+    if (iaqSensor.iaqAccuracy >= 3) {
+      update = true;
+      stateUpdateCounter++;
+    }
+  } else {
+    /* Update every STATE_SAVE_PERIOD milliseconds */
+    if ((stateUpdateCounter * STATE_SAVE_PERIOD) < millis()) {
+      update = true;
+      stateUpdateCounter++;
+    }
+  }
+
+  if (update) {
+    iaqSensor.getState(bsecState);
+    checkIaqSensorStatus();
+
+//    Serial.println("Writing state to EEPROM");
+
+//    for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE ; i++) {
+//      EEPROM.write(i + 1, bsecState[i]);
+//      Serial.println(bsecState[i], HEX);
+//    }
+//
+//    EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
+//    EEPROM.commit();
+  }
+}
+
+void checkIaqSensorStatus(void)
+{
+//  if (iaqSensor.status != BSEC_OK) {
+//    if (iaqSensor.status < BSEC_OK) {
+//      output = "BSEC error code : " + String(iaqSensor.status);
+//      Serial.println(output);
+//      for (;;)
+//        errLeds(); /* Halt in case of failure */
+//    } else {
+//      output = "BSEC warning code : " + String(iaqSensor.status);
+//      Serial.println(output);
+//    }
+//  }
+
+  if (iaqSensor.status != BSEC_OK){
+    redLED_on();
+    return;
+  }
+  if (iaqSensor.bme680Status != BME680_OK){
+    redLED_on();
+    return;
+  }
+
+  redLED_off();
+//  if (iaqSensor.bme680Status != BME680_OK) {
+//    if (iaqSensor.bme680Status < BME680_OK) {
+////      output = "BME680 error code : " + String(iaqSensor.bme680Status);
+////      Serial.println(output);
+//      for (;;)
+//        errLeds(); /* Halt in case of failure */
+//    } else {
+//      output = "BME680 warning code : " + String(iaqSensor.bme680Status);
+//      Serial.println(output);
+//    }
+//  }
+  iaqSensor.status = BSEC_OK;
+}
 
 void BME_sampleConversion(){
 //  Serial.print( ( (float) BME_temp)/100);
@@ -313,10 +442,22 @@ void BME_sampleConversion(){
 //  Serial.print( ( (float) BME_gas)/100);
 //  Serial.println();
 
-  doc["BME680"]["temp"] = ( (float) BME_temp)/100;
-  doc["BME680"]["hum"] = ( (float) BME_humidity)/1000;
-  doc["BME680"]["pres"] = ( (float) BME_pressure)/100;
-  doc["BME680"]["gas"] = ( (float) BME_gas)/100;
+//  doc["BME680"]["temp"] = ( (float) BME_temp)/100;
+//  doc["BME680"]["hum"] = ( (float) BME_humidity)/1000;
+//  doc["BME680"]["pres"] = ( (float) BME_pressure)/100;
+//  doc["BME680"]["gas"] = ( (float) BME_gas)/100;
+  
+  doc["BME680"]["temp"] = iaqSensor.rawTemperature;
+  doc["BME680"]["pres"] = iaqSensor.pressure;
+  doc["BME680"]["hum"] = iaqSensor.rawHumidity;
+  doc["BME680"]["gas"] = iaqSensor.gasResistance;
+  doc["BME680"]["iaq"] = iaqSensor.iaq;
+  doc["BME680"]["iaq_acc"] = iaqSensor.iaqAccuracy;
+  doc["BME680"]["temp_fil"] = iaqSensor.temperature;
+  doc["BME680"]["hum_fil"] = iaqSensor.humidity;
+  doc["BME680"]["static_iaq"] = iaqSensor.staticIaq;
+  doc["BME680"]["co2_eq"] = iaqSensor.co2Equivalent;
+  doc["BME680"]["breath_voc_eq"] = iaqSensor.breathVocEquivalent;
 }
 
 void sampleAirQuality(){
@@ -349,19 +490,23 @@ void sampleAirQuality(){
 
 
 void greenLED_on(){
+  pinMode(GREEN_LED, OUTPUT_OPEN_DRAIN);
   analogWrite(GREEN_LED, 240);
 }
 
 void greenLED_off(){
-  analogWrite(GREEN_LED, 255);
+  pinMode(GREEN_LED, OUTPUT_OPEN_DRAIN);
+  digitalWrite(GREEN_LED, HIGH);
 }
 
 void redLED_on(){
+  pinMode(RED_LED, OUTPUT_OPEN_DRAIN);
   analogWrite(RED_LED, 240);
 }
 
 void redLED_off(){
-  analogWrite(RED_LED, 255);
+  pinMode(RED_LED, OUTPUT_OPEN_DRAIN);
+  digitalWrite(RED_LED, HIGH);
 }
 
 // function to print the temperature for a device
@@ -380,7 +525,7 @@ float getTemperature(DeviceAddress deviceAddress)
       }
     }
     if(retry_attempts == 0){
-      Serial.println("Error: Could not read temperature data");
+//      Serial.println("Error: Could not read temperature data");
       return -1000;
     }
   }
